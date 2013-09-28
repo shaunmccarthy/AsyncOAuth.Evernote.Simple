@@ -15,7 +15,7 @@ seemless way (especially in a web context).
 This library is based off of AsyncOAuth - https://github.com/neuecc/AsyncOAuth
 
 I outline how this project was created on my blog @ 
-http://www.shaunmccarthy.com/sendevernote-using-openauth-openid-with-evernote-and-c/
+http://www.shaunmccarthy.com/evernote-oauth-csharp/
 
 Projects
 --------

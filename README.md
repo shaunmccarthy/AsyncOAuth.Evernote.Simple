@@ -42,6 +42,7 @@ How To:
 
 *Calling The Library*
 
+```csharp
 	// Configure the Authorizer with the URL of the Evernote service,
 	// your key, and your secret.
 	var EvernoteAuthorizer = new EvernoteAuthorizer(
@@ -81,6 +82,7 @@ How To:
     var noteStoreProtocol = new TBinaryProtocol(noteStoreTransport);
     var noteStore = new NoteStore.Client(noteStoreProtocol);
     List<Notebook> notebooks = client.listNotebooks(EvernoteCredentials.AuthToken);
+```
 
 *Optional*
 

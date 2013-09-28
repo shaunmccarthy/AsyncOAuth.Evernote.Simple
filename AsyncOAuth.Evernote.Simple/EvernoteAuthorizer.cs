@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using System.Security.Cryptography;
 
 namespace AsyncOAuth.Evernote.Simple
 {
@@ -49,9 +50,16 @@ namespace AsyncOAuth.Evernote.Simple
         /// <param name="evernoteUrl">The url of the Evernote Service to connection to e.g. https://sandbox.evernote.com for development</param>
         /// <param name="evernoteKey">Customer Key - what you provided evernote when creating API account e.g. "myappname"</param>
         /// <param name="evernoteSecret">Consumer Secret - what you evernote provided you e.g. "badb123b192192"</param>
-        public EvernoteAuthorizer(string evernoteUrl, string evernoteKey, string evernoteSecret)
+        /// <param name="initComputeHash">By default OAuthUtility.ComputeHash is not populated. If you have set this elsewhere in your program, then set this to false</param>
+        public EvernoteAuthorizer(string evernoteUrl, string evernoteKey, string evernoteSecret, bool initComputeHash = true)
             : base(evernoteKey, evernoteSecret)
         {
+            // Snure that the OAuthUtility ComputeHash function has been set - there's no "get" for this
+            // so we have to set it each time - less than ideal. Feel free to set this in your 
+            // global.asax once. This is just for ease of use.
+            if (initComputeHash)
+                OAuthUtility.ComputeHash = (key, buffer) => { using (var hmac = new HMACSHA1(key)) { return hmac.ComputeHash(buffer); } };
+
             EvernoteUrl = evernoteUrl;
         }
 

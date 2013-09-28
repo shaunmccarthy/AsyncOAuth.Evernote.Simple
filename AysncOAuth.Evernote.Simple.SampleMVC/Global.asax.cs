@@ -35,12 +35,6 @@ namespace AysncOAuth.Evernote.Simple.SampleMVC
 
         protected void Application_Start()
         {
-            //
-            // You need to define this for AsyncOAuth to work
-            //
-
-            OAuthUtility.ComputeHash = (key, buffer) => { using (var hmac = new HMACSHA1(key)) { return hmac.ComputeHash(buffer); } };
-
             AreaRegistration.RegisterAllAreas();
 
             // Use LocalDB for Entity Framework by default

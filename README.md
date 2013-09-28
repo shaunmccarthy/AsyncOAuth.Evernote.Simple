@@ -14,6 +14,8 @@ seemless way (especially in a web context).
 
 This library is based off of AsyncOAuth - https://github.com/neuecc/AsyncOAuth
 
+I outline how this project was created on my blog @ http://neofight.shaunmccarthy.com/
+
 Projects
 --------
 
@@ -78,7 +80,15 @@ How To:
     var noteStoreProtocol = new TBinaryProtocol(noteStoreTransport);
     var noteStore = new NoteStore.Client(noteStoreProtocol);
     List<Notebook> notebooks = client.listNotebooks(EvernoteCredentials.AuthToken);
-	
+
+*Optional*
+
+For simplicity's sake, OAuthUtility.ComputeHash is initialized whenever you 
+instantiate EvernoteAuthorizer. You can initialize it yourself in global.asax
+and pass in a "false" at the end of the constructor to tell EvernoteAuthorizer
+not to initialize the function. Ideally, you could check to see if ComputeHash
+is set, but AsyncOAuth doesn't expose it's getter.
+
 Running The Sample:
 -------------------
 
@@ -97,3 +107,8 @@ Links:
  * Evernote C# SDK: https://github.com/evernote/evernote-sdk-csharp
  * Evernote OAuth: http://dev.evernote.com/doc/articles/authentication.php
  * AsyncOAuth for .net / C#: https://github.com/neuecc/AsyncOAuth
+
+Author:
+-------
+
+Shaun McCarthy, github@shaunmccarthy.com, http://www.shaunmccarthy.com

@@ -1,0 +1,27 @@
+﻿@using System.Configuration
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>AsyncOAuth.Evernote.Simple</h2>
+<h3>Preparation</h3>
+<p>You can request an API Key here: <a href="http://dev.evernote.com/doc/">http://dev.evernote.com/doc/</a></p>
+<p>You should also create an account on the evernote sandbox here: <a href="https://sandbox.evernote.com/Registration.action">https://sandbox.evernote.com/Registration.action</a></p>
+<h3>Configuration</h3>
+<p>You need to set the following variables in the web.config @ConfigurationManager.AppSettings["EvernoteUrl"]</p>
+<ul>
+    <li><b>Evernote.Url</b>: @(String.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Evernote.Url"]) ? "[Not Set]" : ConfigurationManager.AppSettings["Evernote.Url"] as string)</li>
+    <li><b>Evernote.Key</b>: @(String.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Evernote.Key"]) ? "[Not Set]" : ConfigurationManager.AppSettings["Evernote.Key"] as string)</li>
+    <li><b>Evernote.Secret</b>: @(String.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Evernote.Secret"])  ? "[Not Set]" : ConfigurationManager.AppSettings["Evernote.Secret"] as string)</li>
+</ul>
+@if (String.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Evernote.Url"]) || String.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Evernote.Key"]) || String.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Evernote.Secret"]))
+{
+    <b>Please set these properties in web.config and refresh this page</b>   
+}
+else 
+{
+    <h3>Run</h3>
+    <p>Have a look at HomeController to see how the calls to AsyncOAuth.Evernote.Simple work - Start with the Authorize Action</p>
+    <p>It is also <b>important</b> to define a HashFunction and assign it to OAuthUtility.HashFunction in your Global.asax.cs</p>
+    <p><a href="/Home/Authorize">Attempt to Authorize this App</a></p>
+}

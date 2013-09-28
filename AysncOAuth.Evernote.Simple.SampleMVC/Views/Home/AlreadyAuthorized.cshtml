@@ -1,0 +1,18 @@
+﻿@using AsyncOAuth.Evernote.Simple
+@model EvernoteCredentials
+@{
+    ViewBag.Title = "Already Authorized";
+}
+
+<h2>Already Authorized</h2>
+
+<p>You are already authorized with the following details</p>
+<ul>
+    <li><b>Auth Token:</b> @Model.AuthToken</li>
+    <li><b>Expires:</b> @Model.Expires.ToLocalTime()</li>
+    <li><b>Notebook Url:</b> @Model.NotebookUrl</li>
+    <li><b>Shard:</b> @Model.Shard</li>
+    <li><b>User ID:</b> @Model.UserId</li>
+    <li><b>Web Api Url Prefix:</b> @Model.WebApiUrlPrefix</li>
+</ul>
+<a href="/Home/Authorize?reauth=true">Reauth</a>

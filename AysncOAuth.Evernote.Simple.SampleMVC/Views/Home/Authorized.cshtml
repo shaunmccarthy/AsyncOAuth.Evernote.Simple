@@ -1,0 +1,71 @@
+﻿@using AsyncOAuth.Evernote.Simple
+@model EvernoteCredentials
+
+@{
+    ViewBag.Title = "Authorized";
+}
+
+<h2>@((Model.AuthToken != null) ? "Authorized" : "Unauthorized")</h2>
+
+@if (Model.AuthToken != null)
+{
+    <p>You are authorized with token [<b>@Model.AuthToken</b>] for [<b>@Model.NotebookUrl</b>]</p>        
+    <p>You can use this token along with the C# API libraries that can be found @@ <a href="https://github.com/evernote/evernote-sdk-csharp">https://github.com/evernote/evernote-sdk-csharp</a></p>
+    <p>Check out my blog @@ <a href="http://www.shaunmccarthy.com/">http://www.shaunmccarthy.com/neofight</a> for an example of how to use the API</p>
+    <p>Here's a quick code sample to get you started (you'll need to download the API projects first):</p>
+<!-- code formatted by http://manoli.net/csharpformat/ -->
+<style type="text/css">
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: Consolas, "Courier New", Courier, Monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+
+.csharpcode pre { margin: 0em; }
+
+.csharpcode .rem { color: #008000; }
+
+.csharpcode .kwrd { color: #0000ff; }
+
+.csharpcode .str { color: #a31515; }
+
+.csharpcode .op { color: #0000c0; }
+
+.csharpcode .preproc { color: #cc6633; }
+
+.csharpcode .asp { background-color: #ffff00; }
+
+.csharpcode .html { color: #800000; }
+
+.csharpcode .attr { color: #ff0000; }
+
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+
+.csharpcode .lnum { color: #606060; }
+</style>
+<pre class="csharpcode">
+        <span class="rem">// retrieve a user's notebooks</span>
+        <span class="kwrd">var</span> noteStoreUrl = <b>EvernoteCredentials.NotebookUrl</b>;
+        <span class="kwrd">var</span> noteStoreTransport = <span class="kwrd">new</span> THttpClient(<span class="kwrd">new</span> Uri(noteStoreUrl));
+        <span class="kwrd">var</span> noteStoreProtocol = <span class="kwrd">new</span> TBinaryProtocol(noteStoreTransport);
+        <span class="kwrd">var</span> noteStore = <span class="kwrd">new</span> NoteStore.Client(noteStoreProtocol);
+        List&lt;Notebook&gt; notebooks = client.listNotebooks(<b>EvernoteCredentials.AuthToken</b>);
+</pre>
+    <p>Formatted using: <a href="http://www.manoli.net/csharpformat/format.aspx">http://www.manoli.net/csharpformat/format.aspx</a></p>
+    
+    
+}
+else
+{
+    <p>You have not authorized this application in Evernote yet - try going to <a href="/Home/Authorize">/Home/Authorize</a></p>
+}
+
+<a href="/">Return Home</a>

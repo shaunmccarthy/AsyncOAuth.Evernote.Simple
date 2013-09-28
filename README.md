@@ -96,6 +96,8 @@ Open up the AsyncOAuth.Evernote.Simple.SampleMVC and run it - the index page
 will tell you what you need to change to get the project running. The 
 interesting parts can be found in HomeController.cs
 
+You can see what things would look like without the library in RawController.cs
+
 To Do:
 ------
 

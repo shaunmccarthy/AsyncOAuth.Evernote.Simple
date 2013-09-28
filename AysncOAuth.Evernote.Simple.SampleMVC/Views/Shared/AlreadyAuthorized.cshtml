@@ -15,4 +15,4 @@
     <li><b>User ID:</b> @Model.UserId</li>
     <li><b>Web Api Url Prefix:</b> @Model.WebApiUrlPrefix</li>
 </ul>
-<a href="/Home/Authorize?reauth=true">Reauth</a>
+<a href="@Url.Action("Authorize")?reauth=true">Reauth</a>

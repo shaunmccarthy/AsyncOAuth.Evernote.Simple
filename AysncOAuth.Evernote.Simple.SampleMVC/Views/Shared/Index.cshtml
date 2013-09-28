@@ -3,7 +3,6 @@
     ViewBag.Title = "Index";
 }
 
-<h2>AsyncOAuth.Evernote.Simple</h2>
 <h3>Preparation</h3>
 <p>You can request an API Key here: <a href="http://dev.evernote.com/doc/">http://dev.evernote.com/doc/</a></p>
 <p>You should also create an account on the evernote sandbox here: <a href="https://sandbox.evernote.com/Registration.action">https://sandbox.evernote.com/Registration.action</a></p>
@@ -23,5 +22,5 @@ else
     <h3>Run</h3>
     <p>Have a look at HomeController to see how the calls to AsyncOAuth.Evernote.Simple work - Start with the Authorize Action</p>
     <p>It is also <b>important</b> to define a HashFunction and assign it to OAuthUtility.HashFunction in your Global.asax.cs</p>
-    <p><a href="/Home/Authorize">Attempt to Authorize this App</a></p>
+    <p><a href="@Url.Action("Authorize")">Attempt to Authorize this App</a></p>
 }

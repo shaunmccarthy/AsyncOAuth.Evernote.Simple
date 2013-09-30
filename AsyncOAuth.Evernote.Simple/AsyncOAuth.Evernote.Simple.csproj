@@ -53,6 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncEvernoteAuthorizer.cs" />
     <Compile Include="EvernoteAuthorizer.cs" />
     <Compile Include="IEvernoteCredentials.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

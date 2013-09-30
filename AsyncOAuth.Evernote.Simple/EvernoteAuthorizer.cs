@@ -10,9 +10,6 @@ using System.Security.Cryptography;
 namespace AsyncOAuth.Evernote.Simple
 {
     /// <summary>
-    /// This class simplifies the calls to OAuthAuthorizer that are required
-    /// to get access to a user's evernote information. 
-    /// 
     /// To connect to evernote, you call the consturctor, and then BuildAuthorizeUrl
     /// which will return a URL that you need to redirect the user to. Then once
     /// they come back to your site, call ParseAccessToken with the oauth_validator
@@ -20,47 +17,40 @@ namespace AsyncOAuth.Evernote.Simple
     /// This will then populate your EvernoteCredentials object
     /// </summary>
     /// <remarks>
-    /// The async calls are simplified to synchronous calls, and could do with 
-    /// work to make them more MVC 4 compliant
+    /// This class simplifies the calls to AsyncOAuthAuthorizer so that you don't
+    /// need to worry about async calls. Use this to get started, and then if your
+    /// controller needs to do any other processing, you can switch to using 
+    /// AsyncEvernoteAuthorizer.
+    /// 
+    /// It wraps all calls to AsyncEverynoteAuthorizer in a Task.Run so that the MVC
+    /// controller doesn't return until the Evernote Servers have been talked to. This
+    /// is not ideal in a large environment, so you should use AsyncEvernoteAuthorizer
+    /// in that situation. More details can be found here:
     /// http://www.asp.net/mvc/tutorials/mvc-4/using-asynchronous-methods-in-aspnet-mvc-4
     /// </remarks>
-    public class EvernoteAuthorizer : OAuthAuthorizer
+    public class EvernoteAuthorizer
     {
         /// <summary>
-        /// The base URL of the Evernote API Server
+        /// Used to make the calls the evernote service
         /// </summary>
-        public string EvernoteUrl { get; set; }
-        /// <summary>
-        /// The OAuth url for evernote
-        /// </summary>
-        public string OAuthUrl { get { return EvernoteUrl + ("/oauth"); } }
-        /// <summary>
-        /// The OAuth.Action url for evernote
-        /// </summary>
-        public string OAuthActionUrl { get { return EvernoteUrl + "/OAuth.action"; } }
+        public AsyncEvernoteAuthorizer AsyncEvernoteAuthorizer { get; set; }
 
         /// <summary>
-        /// Credentials that will be populated after the user authorizes the app
-        /// </summary>
-        public EvernoteCredentials EvernoteCredentials { get; set; }
-
-        /// <summary>
+        /// This object is a Syncrhonous wrapper around the AsyncEvernoteAuthorizer,
+        /// which is turn simplifies the interface to AsyncOAuth when talking to Evernote,
+        /// taking care of some of configuration parameters / parsing you normally have
+        /// to deal with when working with the OAuth directly. 
         /// 
+        /// It will wait until we have heard back from Evernote before finishing the request
+        /// Use AsyncEvernoteAuthorizer if you want to remove this dependency
         /// </summary>
         /// <param name="evernoteUrl">The url of the Evernote Service to connection to e.g. https://sandbox.evernote.com for development</param>
         /// <param name="evernoteKey">Customer Key - what you provided evernote when creating API account e.g. "myappname"</param>
         /// <param name="evernoteSecret">Consumer Secret - what you evernote provided you e.g. "badb123b192192"</param>
         /// <param name="initComputeHash">By default OAuthUtility.ComputeHash is not populated. If you have set this elsewhere in your program, then set this to false</param>
         public EvernoteAuthorizer(string evernoteUrl, string evernoteKey, string evernoteSecret, bool initComputeHash = true)
-            : base(evernoteKey, evernoteSecret)
         {
-            // Snure that the OAuthUtility ComputeHash function has been set - there's no "get" for this
-            // so we have to set it each time - less than ideal. Feel free to set this in your 
-            // global.asax once. This is just for ease of use.
-            if (initComputeHash)
-                OAuthUtility.ComputeHash = (key, buffer) => { using (var hmac = new HMACSHA1(key)) { return hmac.ComputeHash(buffer); } };
-
-            EvernoteUrl = evernoteUrl;
+            AsyncEvernoteAuthorizer = new AsyncEvernoteAuthorizer(evernoteUrl, evernoteKey, evernoteSecret, initComputeHash);
         }
 
         /// <summary>
@@ -71,7 +61,9 @@ namespace AsyncOAuth.Evernote.Simple
         /// <returns>A RequestToken which is needed for the BuildAuthorizeUrl and ParseAccessToken methods (will need to be persisted)</returns>
         public RequestToken GetRequestToken(string callbackUri) 
         {
-            return base.GetRequestToken(OAuthUrl, new Dictionary<string, string> { { "oauth_callback", callbackUri } }, null).Result.Token;
+            // This will wait until we hear back from Evernote, rather than finishing this request (which an await would do)
+            // For the proper
+            return Task.Run(() => AsyncEvernoteAuthorizer.GetRequestToken(callbackUri)).Result;
         }
 
         /// <summary>
@@ -83,61 +75,24 @@ namespace AsyncOAuth.Evernote.Simple
         /// <returns></returns>
         public string BuildAuthorizeUrl(RequestToken token)
         {
-            // Use the existing token, or generate a new one
-            var callForwardUrl = base.BuildAuthorizeUrl(OAuthActionUrl, token);
-
-            // Store the token in the IEvernoteAuthorizer
-            return callForwardUrl;
+            return AsyncEvernoteAuthorizer.BuildAuthorizeUrl(token);
         }
-
+        
         /// <summary>
         /// This method should be called once you have received the verifier from 
         /// Evernote. It will populate a EvernoteCredentials object with all the 
         /// information you need to authenticate to Evernote as this user
         /// </summary>
+        /// <remarks>
+        /// This is an asynchronous method
+        /// </remarks>
         /// <param name="oauth_verifier">The verifier passed in via the QueryString to your endpoint</param>
         /// <param name="token">The token used to request the authorization - this should be persisted from the call to GetRequestToken</param>
         /// <returns></returns>
         public EvernoteCredentials ParseAccessToken(string oauth_verifier, RequestToken token)
         {
-            // If there is no oauth_verifier parameter, then we failed to authorize :(
-            if (oauth_verifier == null)
-                return null;
-
-            if (token == null)
-                throw new ArgumentNullException("token", "You need to pass in the original token that was generated by BuildAuthorizeUrl");
-
-            var result = base.GetAccessToken(OAuthUrl, token, oauth_verifier, null, null).Result;
-
-            // There is no extra secret for evernote tokens
-            EvernoteCredentials credentials = new EvernoteCredentials();
-            credentials.AuthToken = result.Token.Key;
-
-            // Parse the extra data
-            credentials.Shard = ParseExtraData(result, "edam_shard");
-            credentials.UserId = ParseExtraData(result, "edam_userId");
-            var expires = ParseExtraData(result, "edam_expires");
-            var expiresDateTime = new DateTime(1970, 1, 1).AddTicks(long.Parse(expires) * 10000);
-            credentials.Expires = DateTime.SpecifyKind(expiresDateTime, DateTimeKind.Utc);
-            credentials.NotebookUrl = ParseExtraData(result, "edam_noteStoreUrl");
-            credentials.WebApiUrlPrefix = ParseExtraData(result, "edam_webApiUrlPrefix");
-            return credentials;
+            return Task.Run(() => AsyncEvernoteAuthorizer.ParseAccessToken(oauth_verifier, token)).Result;
         }
 
-        /// <summary>
-        /// Parses the ExtraData collection
-        /// </summary>
-        private string ParseExtraData(TokenResponse<AccessToken> result, string key)
-        {
-            if (!result.ExtraData.Contains(key))
-                return null;
-
-            var data = result.ExtraData[key];
-
-            if (data == null)
-                return null;
-            else
-                return Uri.UnescapeDataString(data.FirstOrDefault());
-        }
     }
 }

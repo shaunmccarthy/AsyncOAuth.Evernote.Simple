@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <projectUrl>https://github.com/shaunmccarthy/AsyncOAuth.Evernote.Simple</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A simplified interface for dealing with Evernote via OAuth (Asynchronously or Synchronously)</description>
+    <tags>Evernote OAuth AsyncOAuth</tags>
+    <dependencies>
+      <dependency id="AsyncOAuth" version="0.7.0" />
+    </dependencies>
+  </metadata>
+</package>

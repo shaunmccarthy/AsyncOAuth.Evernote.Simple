@@ -628,8 +628,7 @@ Supabase Realtime (if supported), read-aloud, screenless Echos.
 | # | Question | Proposed default |
 |---|----------|------------------|
 | Q1 | Lore content | Placeholder until the separate content chat; rows carry an age band. |
-| Q2 | Is the **Echo Show 21** itself in Amazon Kids mode, or a normal (adult) family device? | Assumed normal mode; the spike confirms the skill opens there. |
-| Q3 | Visual style that suits a 13-year-old as well as a 7-year-old | Bright adventure-game look; revisit once real art is chosen. |
+| Q2 | Visual style that suits a 13-year-old as well as a 7-year-old | Bright adventure-game look; revisit once real art is chosen. |
 
 ---
 
@@ -650,3 +649,4 @@ Supabase Realtime (if supported), read-aloud, screenless Echos.
 | 2026-10-01 | Code in a new `quest-board` repo; spec drafted here. |
 | 2026-10-02 | v0.2 review: bundled SVG emoji; revision-based polling with idle backoff; one-round-trip board data; device tokens + browser devices; screenless Echo support; one-shot celebration flow; non-overlapping default windows and overlap rules; DST-safe time; idempotent ticks; pairing rate limits; milestone plan that ships a browser board before Alexa. |
 | 2026-10-02 | v0.3: v1 targets the Echo Show 21 + browsers; small (Amazon Kids) Shows and voice recognition move to M5. Excused days & family pauses added. No one-off quests. Late and early ticks confirmed. Kids aged 7/10/13: text-first, not babyish, lore age bands. Single parent for now. Ticks get a soft chime only; sound reserved for celebrations. |
+| 2026-10-02 | The Echo Show 21 is a normal family device (not Amazon Kids mode), so the v1 target isn't affected by R2. |

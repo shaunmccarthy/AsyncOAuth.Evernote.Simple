@@ -1,6 +1,7 @@
 # Quest Board — Product & Technical Spec
 
-> Status: **Draft v0.1** · Last updated: 2026-10-01
+> Status: **Draft v0.2** · Last updated: 2026-10-02 · Items marked *(proposed)* are new in
+> v0.2 and await confirmation (see §8 questions).
 > Scope: Alexa (Echo Show family, incl. Echo Show 21) + parent web admin.
 > Future: iPhone and Apple Watch clients on the same backend.
 
@@ -62,7 +63,9 @@ live in one strings file so names can be changed easily.
 |--------|----------------|
 | Echo Show 5 / 8 / 10 | Single-kid view, avatar strip to switch |
 | Echo Show 15 / 21 | Family board (all kids side by side), tap a kid to focus |
-| Desktop browser | Same web app; dev simulator for any device size |
+| Screenless Echo (Dot, etc.) | Voice only — same intents, no display *(proposed)* |
+| Any web browser / tablet | Same board at `/board` after pairing — useful for early family testing before the Alexa skill is ready *(proposed)* |
+| Desktop browser (dev) | Dev simulator for any device size |
 
 Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
 
@@ -73,8 +76,9 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
 ### 4.1 Scheduling
 
 - **FR-S1** A family has named **time windows** with editable start/end times.
-  Defaults: Morning 06:00–09:00, Afternoon 12:00–17:00, Evening 17:00–20:00,
-  Bedtime 19:00–21:00.
+  Defaults (non-overlapping): Morning 06:00–09:00, Afternoon 12:00–17:00,
+  Evening 17:00–19:30, Bedtime 19:30–21:00. A window must start and end on the same day
+  (no crossing midnight), since midnight is the day rollover.
 - **FR-S2** A quest has: name, icon (emoji), **days of week** (any subset of Mon–Sun), a
   time window, and an optional **per-quest start/end override**.
 - **FR-S3** A quest has an ordered list of objectives (name, emoji icon, order, optional
@@ -93,16 +97,23 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
   | Missed | now ≥ end and not complete |
 
   Missed quests don't carry over; they simply reappear on the next scheduled day.
+  Several quests can be active at once (overlapping windows or custom times); they're
+  ordered by end time, soonest first.
+- **FR-S8** Time maths uses the family's IANA timezone (e.g. `America/New_York`) so daylight
+  saving changes are handled; quest times are wall-clock local times.
 - **FR-S7** Editing a quest takes effect immediately. Completions are keyed by objective +
   date, so renaming keeps progress; removing an objective removes it from today's count.
   Quests/objectives are **archived, not deleted**, so history stays intact.
 
 ### 4.2 Kid board (display)
 
-- **FR-B1** The current (active) quest is shown prominently with large tappable objective
-  cards (emoji + name; minimum 64px touch targets; readable by pre-readers via icons).
-- **FR-B2** Later quests today are shown smaller beneath ("Coming up: Evening Quest at 5pm").
-  Missed and completed quests for today are shown collapsed with their status.
+- **FR-B1** Active quest(s) are shown prominently with large tappable objective cards
+  (emoji + name; minimum 64px touch targets; readable by pre-readers via icons).
+- **FR-B2** Later quests today are shown smaller beneath ("Coming up: Evening Quest at 5pm")
+  and can be expanded and ticked early *(proposed)*. Missed and completed quests for today
+  are shown collapsed with their status.
+- **FR-B2a** When nothing is active: show the next quest and its start time, or a "Rest,
+  adventurer — no quests left today" screen with the streak.
 - **FR-B3** Progress indicator per quest (e.g. 3/5 with a progress bar themed as a
   quest map/path).
 - **FR-B4** Kid header: avatar, name, colour theme, Victory Streak.
@@ -112,10 +123,14 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
 - **FR-B6** **Smaller Echo Shows**: single-kid view with an avatar strip to switch kids.
 - **FR-B7** A switched kid (or focus view) **reverts to the device default after 5 minutes**
   of inactivity.
-- **FR-B8** The board refreshes from the server every few seconds while visible, so ticks made
-  on other devices appear with a slight delay (target ≤ 5s).
+- **FR-B8** The board checks for changes every ~4s while there's recent activity, slowing to
+  ~30s after 5 minutes idle, so ticks made on other devices appear within ~5s when it
+  matters. The check is cheap (§6.3) and only fetches the full board when something changed.
 - **FR-B9** Tapping a speaker icon makes Alexa read the active quest's remaining objectives
   aloud (for pre-readers).
+- **FR-B10** Emoji (avatars, objective icons) are rendered from a **bundled SVG emoji set**
+  (e.g. OpenMoji or Twemoji), not the device's emoji font, so they look the same on every
+  Echo, browser and future iOS client.
 
 ### 4.3 Completing & undoing
 
@@ -134,6 +149,9 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
   for any day from the admin.
 - **FR-C6** Every completion records: kid, objective, date, time, source (touch / voice /
   admin), device.
+- **FR-C7** Completing is **idempotent** (a tap and a voice tick at the same moment produce
+  one completion) and validated: the kid must be assigned to the quest and the quest
+  scheduled on that date.
 
 ### 4.4 Celebrations
 
@@ -145,8 +163,12 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
   celebration (also once per day), showing the updated Victory Streak.
 - **FR-K4** Sound: fanfare plus Alexa reading the lore aloud. A **mute** setting per device
   turns off sound and speech (visuals still play).
-- **FR-K5** The celebration auto-dismisses after ~10s or on tap; on the family board it
-  plays over the full screen and then returns to the board.
+- **FR-K5** The celebration auto-dismisses after ~10s or on tap. On the **family board** a
+  short full-screen firework burst (~3s) plays, then the celebration card stays in that
+  kid's column so siblings can keep tapping their own objectives *(proposed)*.
+- **FR-K7** If a voice tick completes a quest while the board isn't open (e.g. a one-shot
+  "Alexa, tell Quest Board I brushed my teeth" from the home screen), a screen device opens
+  the board straight into the celebration; a screenless device just speaks it.
 - **FR-K6** Lore content is a placeholder table for now (to be filled from a separate
   content effort). Each lore entry has a kind (quote/fact) and text, and is selected at
   random, avoiding repeats for a kid within the last N shown.
@@ -161,7 +183,9 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
 ### 4.6 Kid identity & switching
 
 - **FR-I1** Each device has a **default kid** (set at pairing; changeable in admin or on the
-  Echo with the parent PIN).
+  Echo with the parent PIN). The default is optional: a shared device such as the
+  family-board 21" can have **no default**, in which case Alexa asks "Which adventurer are
+  you?" when it can't recognise the voice *(proposed)*.
 - **FR-I2** If Alexa recognises the speaker's **voice profile** and it's linked to a kid,
   voice requests act as that kid.
 - **FR-I3** Linking a voice: a recognised but unlinked speaker says "I'm Emma" → the screen
@@ -197,6 +221,11 @@ Initial family: 3 kids, a handful of Echo devices including one Echo Show 21.
   kid is chosen. The Echo screen refreshes into the board.
 - **FR-P3** Alexa account linking (OAuth) is **not** used in v1 but the design leaves room to
   add it if the skill is ever published.
+- **FR-P4** Screenless Echos speak the code. Browsers/tablets get the same flow at `/board`.
+- **FR-P5** Pairing attempts are rate-limited (e.g. 5 wrong codes per 10 min per family) and
+  codes are single-use.
+- **FR-P6** Alexa's device ID changes if the skill is disabled and re-enabled; the device
+  then shows a new pairing code and the old device entry can be removed in admin.
 
 ### 4.9 Voice interaction model
 
@@ -217,6 +246,9 @@ Invocation name: **"quest board"** (dev environment: **"quest board dev"**).
   server-side fuzzy matching.
 - One-shot use is supported: "Alexa, ask Quest Board what's left", "Alexa, tell Quest Board I
   brushed my teeth".
+- While the board is open the skill session stays active, so kids just say **"Alexa, I
+  brushed my teeth"** without the invocation name. The microphone isn't left open (kids
+  must say the wake word), to avoid accidental triggers.
 - Responses are short and in character ("Huzzah! *Brush teeth* complete. Two objectives to go,
   brave Emma!").
 
@@ -235,7 +267,7 @@ Invocation name: **"quest board"** (dev environment: **"quest board dev"**).
 | NFR-7 | Privacy | Minimal data: kid first name/nickname, emoji avatar, colour. No birthdates, photos or audio stored. Alexa person IDs stored only as opaque identifiers. "Delete kid" hard-deletes all their data. |
 | NFR-8 | Security | Parent admin behind Supabase Auth. Devices use a per-device secret, never a parent session. Alexa requests are signature-verified and checked against the skill ID. Parent PIN stored hashed. Data scoped by family on every query (plus Postgres RLS as defence in depth). |
 | NFR-9 | Accessibility | Designed for ages 4+: icons for every objective, large touch targets, read-aloud, high-contrast bright theme, `prefers-reduced-motion` respected. |
-| NFR-10 | Cost | < $10/month; expected ~$0 on Cloudflare + Supabase free tiers. |
+| NFR-10 | Cost | < $10/month; expected ~$0 on Cloudflare + Supabase free tiers. Watch two limits: Workers free tier is 100k requests/day (one board polling every 4s all day ≈ 22k, hence the idle backoff in FR-B8), and Supabase free projects **pause after ~7 days without activity** (matters for dev; a scheduled CI ping keeps it awake). |
 | NFR-11 | Dev speed | The whole kid UI and admin run in a desktop browser; voice flows testable without an Echo (§6.9). One-command local dev. |
 | NFR-12 | Testing | Automated unit tests for domain logic, integration tests for API + voice handlers, automated UI tests (Playwright) incl. visual snapshots at Echo resolutions. |
 | NFR-13 | Environments | Separate **dev** and **prod** (separate Supabase projects, Workers and Alexa skills) so experiments never break the morning routine. |
@@ -257,8 +289,9 @@ Invocation name: **"quest board"** (dev environment: **"quest board dev"**).
 | Language | **TypeScript** everywhere; pnpm workspaces | One language for UI, API, skill and logic. |
 | UI | React + Vite; CSS animations + a canvas fireworks lib (e.g. `fireworks-js` / `canvas-confetti`) | Fast iteration. |
 | Device linking | Pairing code | No OAuth/account-linking setup. |
-| Sync | Polling (~3–5s) | Simple; Supabase Realtime later if it works on Echo. |
-| Avatars | Emoji placeholders | Real art later. |
+| Sync | Polling with a cheap revision check | Simple; Supabase Realtime later if it works on Echo. |
+| Avatars | Emoji placeholders from a bundled SVG emoji set | Consistent across devices; real art later. |
+| Time handling | IANA tz via `Intl` / Temporal polyfill in `packages/core` | DST-safe; no server-local time anywhere. |
 
 ### 6.2 Component diagram
 
@@ -306,6 +339,15 @@ Invocation name: **"quest board"** (dev environment: **"quest board dev"**).
 1. `CompleteObjectiveIntent` → resolve kid (FR-I5) → match objective → write completion.
 2. Response: speech + `Alexa.Presentation.HTML.HandleMessage` telling the page to refresh
    and play any celebration.
+3. If the request started a **new session** (one-shot from the home screen), there is no
+   page to message: on a screen device respond with `HTML.Start` opening
+   `/board?celebrate=…` instead (FR-K7); on a screenless device, speech only.
+
+**Change detection (polling)**
+- Every write bumps `families.revision` (Postgres trigger).
+- The board polls `GET /api/board/family` with `If-None-Match: "<revision>:<date>"`; the
+  Worker reads only the revision (one tiny query) and returns `304 Not Modified` unless
+  something changed or the date rolled over. Full board builds happen only on change.
 
 ### 6.4 Domain logic (`packages/core`)
 
@@ -321,10 +363,16 @@ for all clients.
   aliases, token overlap, edit distance)
 - `pickLore(kid, recent)`
 
+Data for a board is loaded in **one round trip** via a Postgres function
+(`board_data(family_id, date)` returning kids, quests, objectives, today's completions and
+recent history as JSON); all rules run in TypeScript on the result. This keeps Worker →
+Supabase latency to one hop and keeps logic out of SQL.
+
 ### 6.5 Data model (Postgres)
 
 ```sql
-families        (id uuid pk, name, timezone text, parent_pin_hash, created_at)
+families        (id uuid pk, name, timezone text, parent_pin_hash, revision bigint,
+                 created_at)                         -- revision bumped by trigger on writes
 parents         (user_id uuid pk -> auth.users, family_id fk, display_name)
 kids            (id, family_id, name, avatar text, color text, sort_order,
                  created_at)                         -- hard delete cascades
@@ -340,9 +388,13 @@ completions     (id, kid_id fk, objective_id fk, local_date date, completed_at t
                  -- unique (kid_id, objective_id, local_date) where undone_at is null
 celebrations    (id, kid_id, quest_id null, kind text, local_date, lore_id, created_at)
                  -- unique (kid_id, coalesce(quest_id), kind, local_date) → FR-K2
-devices         (id, family_id, alexa_device_id unique, label, default_kid_id null,
-                 muted bool, paired_at, last_seen_at)
-pairing_codes   (code, alexa_device_id, expires_at)
+devices         (id, family_id, kind text,            -- 'alexa' | 'browser' (later 'watch')
+                 alexa_device_id unique null, label, default_kid_id null,
+                 layout text,                         -- 'auto' | 'single' | 'family'
+                 muted bool, secret_hash null,        -- browser devices: long-lived secret
+                 paired_at, last_seen_at)
+pairing_codes   (code, device_ref, expires_at, used_at)
+pairing_attempts(family_id, attempted_at)            -- rate limiting (FR-P5)
 lore            (id, kind text, text, active bool)   -- placeholder seed rows
 ```
 
@@ -356,7 +408,8 @@ All responses JSON; the Board DTO is versioned (`"v": 1`) because iOS/watch will
 | Method & path | Auth | Purpose |
 |---------------|------|---------|
 | `GET /api/board?kid=` | device / parent | One kid's board for today |
-| `GET /api/board/family` | device / parent | All kids (family board) |
+| `GET /api/board/family` | device / parent | All kids (family board); supports `If-None-Match` → 304 |
+| `POST /api/devices/register` | none (rate-limited) | Browser/tablet asks for a pairing code |
 | `POST /api/completions` `{kidId, objectiveId, date?}` | device / parent | Complete; returns board + celebration |
 | `DELETE /api/completions` `{kidId, objectiveId, date?}` | device / parent | Undo (`date` ≠ today requires parent) |
 | `POST /api/devices/pair` `{code, defaultKidId}` | parent | Pair device |
@@ -374,6 +427,12 @@ All responses JSON; the Board DTO is versioned (`"v": 1`) because iOS/watch will
   Node-only `ask-sdk-express-adapter` verifiers don't run on Workers.
 - **Session**: the HTML app keeps the skill session open; idle timeout configured via
   `HTML.Start` `configuration.timeoutInSeconds` (max to be confirmed in spike).
+- **Device tokens**: the token passed to the page in `HTML.Start` is a Worker-signed JWT
+  (family, device; ~12h expiry). The page asks the skill for a fresh one via
+  `alexa.skill.sendMessage` before expiry. Browser devices instead hold a long-lived device
+  secret (stored hashed server-side, revocable by unpairing).
+- **Dev bypass**: the simulator's unsigned requests to `/alexa` are accepted **only** in the
+  dev Worker **and** only with a `X-Dev-Secret` header; prod never accepts unsigned requests.
 - **Personalisation**: request `person.personId` (requires enabling personalisation on the
   skill) → `kid_voice_links`.
 - **Skill package** (manifest + interaction model) lives in the repo and is deployed with
@@ -410,7 +469,13 @@ the board runs in a normal browser.
 | Device | Manual checklist on real Echos | Spike items + release smoke test |
 
 CI (GitHub Actions): lint, typecheck, unit, integration, Playwright on every PR; deploy to
-dev on merge to `main`; promote to prod manually.
+dev on merge to `main`; promote to prod manually. A scheduled workflow pings the dev
+Supabase project so it isn't paused for inactivity.
+
+**Must-have test cases** (seeded into the suite from day one): midnight rollover while the
+board is open; DST change days; overlapping active quests; undo after celebration (no
+re-trigger); late tick turning Missed → Complete; simultaneous touch + voice tick
+(idempotency); quest edited mid-day; kid unassigned mid-day; device token expiry/refresh.
 
 ### 6.10 Environments & deployment
 
@@ -453,25 +518,40 @@ service).
 
 ## 7. Delivery plan
 
-**Phase 0 — Device spike (½–1 day)**, deliberately before building:
-1. HTML `Alexa.Presentation.HTML.Start` renders on Echo Show 21, 15, 8 (resolution, perf of
-   canvas fireworks).
-2. Idle timeout behaviour / maximum `timeoutInSeconds`.
+Built as thin vertical slices so the family can start using something early and feedback
+shapes the rest.
+
+**M0 — Device spike (½–1 day)**, deliberately before building. A throwaway skill + page:
+1. HTML `Alexa.Presentation.HTML.Start` renders on the Echo Show 21, 15, 8 (resolution,
+   canvas fireworks performance, bundled SVG emoji, audio playback/autoplay).
+2. Idle timeout behaviour / maximum `timeoutInSeconds`; does the Echo screen dim or sleep?
 3. `fetch` from the Echo page to the Worker (CORS, latency); WebSocket support (for future
    Realtime).
 4. `person.personId` returned for **kids' voice profiles**; whether dev-stage skills are
-   reachable when an Echo or voice is in Amazon Kids mode.
+   reachable from devices or voices in **Amazon Kids** mode.
 5. Page → skill message → spoken response (for touch-triggered celebration speech).
 6. `ask-sdk-core` + WebCrypto signature verification on Workers.
 7. Widget support on the Echo Show 21 (APL widget gallery availability for dev skills).
+8. Whether the Echo's built-in **Silk browser** can show `/board` as a fallback always-on
+   view.
 
-**Phase 1 — MVP**: core logic, Supabase schema, Worker API, admin (kids, quests, windows,
-devices, settings), pairing, board (single + family layouts), touch + voice tick/undo,
-switching, celebrations with placeholder lore, streaks, history, dev simulator, test suite,
-dev/prod environments.
+**M1 — Board in a browser (no Alexa yet)**: repo scaffold, CI, `packages/core` with tests,
+Supabase schema + seed, Worker API, `/board` (single + family layouts, touch tick/undo,
+switching, celebration with placeholder lore), browser pairing via a dev-created family.
+*Usable on a tablet or the 21"'s browser within days.*
 
-**Phase 2 — Polish**: APL home-screen widget for the 21", real avatar art and sounds, lore
-content, Supabase Realtime (if supported), "Legendary Day" extras.
+**M2 — Parent admin**: auth, kids, quests, objectives, time windows, devices, settings,
+history grid.
+
+**M3 — Alexa**: skill package, Launch/HTML board, pairing, What's Left, Complete/Undo,
+Switch Kid, dynamic entities, one-shot flows, dev simulator, voice replay tests, dev + prod
+skills.
+
+**M4 — Delight & identity**: streaks + Legendary Day, voice-profile linking with PIN, mute,
+read-aloud, sounds.
+
+**Phase 2 — Polish**: APL home-screen widget for the 21", real avatar art, lore content,
+Supabase Realtime (if supported).
 
 **Phase 3 — Apple**: iPhone (parent + kid), Apple Watch (kid), complications, reminders.
 
@@ -482,12 +562,27 @@ content, Supabase Realtime (if supported), "Legendary Day" extras.
 | # | Item | Mitigation / default |
 |---|------|----------------------|
 | R1 | Echo Show 21 HTML support or performance | Spike first; fall back to APL for the board if needed (UI logic stays in the API). |
-| R2 | Kid voice profiles not exposed to the skill / Amazon Kids mode blocks dev skills | Fall back to device default + "I'm {kid}". |
-| R3 | HTML app idle timeout returns the Echo to its home screen | Accept for v1; phase 2 widget gives an always-visible view. |
+| R2 | Kid voice profiles not exposed to the skill / **Amazon Kids** mode blocks private dev skills | Fall back to device default + "I'm {kid}"; keep shared Echos in normal (adult) mode. |
+| R3 | HTML app idle timeout returns the Echo to its home screen | Accept for v1; phase 2 widget gives an always-visible view; Silk browser as possible fallback. |
 | R4 | Alexa signature verification on Workers | Small WebCrypto implementation + tests; fallback is a tiny AWS Lambda just for `/alexa`. |
 | R5 | Voice matching accuracy for kids' speech | Dynamic entities + aliases + confirmation prompt on low confidence. |
-| Q1 | Late ticks (after a quest's window) | Default: allowed until midnight, quest becomes Complete (FR-C5). Change if you'd rather it stay Missed. |
+| R6 | Device emoji fonts missing/outdated on Echo | Bundled SVG emoji set (FR-B10). |
+| R7 | Free-tier limits (Workers requests, Supabase pausing) | Revision-based polling with backoff; CI keep-alive ping for dev. |
+| R8 | Alexa device IDs change after skill re-enable | Re-pair flow (FR-P6). |
+
+### Open questions (v0.2)
+
+| # | Question | Proposed default |
+|---|----------|------------------|
+| Q1 | Late ticks after a quest's window | Allowed until midnight; quest becomes Complete (FR-C5). |
 | Q2 | Lore content | Placeholder until the separate content chat. |
+| Q3 | Sick days / holidays / travel | Parent can mark a kid's day (or a single quest) as **Excused**: hidden from the board, doesn't count as missed, doesn't break the streak. Plus a family-wide "Pause quests" date range. |
+| Q4 | One-off quests (e.g. "Return library book" on Thursday only) | Support "specific date(s)" as a schedule type in v1 (cheap to add to the scheduler). |
+| Q5 | Early ticks on upcoming quests | Allowed (FR-B2). |
+| Q6 | 21" family board voice with unknown speaker | No default kid on that device; Alexa asks who's speaking (FR-I1). |
+| Q7 | Family-board celebration | Short full-screen burst, then in-column card (FR-K5). |
+| Q8 | Device inventory & Amazon Kids usage | Needed to plan the spike. |
+| Q9 | Kids' ages | Drives reading level, voice phrasing and lore selection. |
 
 ---
 
@@ -506,3 +601,4 @@ content, Supabase Realtime (if supported), "Legendary Day" extras.
 | 2026-10-01 | Cloudflare Workers + Supabase; TypeScript; React + Vite. |
 | 2026-10-01 | Pairing codes instead of account linking. |
 | 2026-10-01 | Code in a new `quest-board` repo; spec drafted here. |
+| 2026-10-02 | v0.2 review: bundled SVG emoji; revision-based polling with idle backoff; one-round-trip board data; device tokens + browser devices; screenless Echo support; one-shot celebration flow; non-overlapping default windows and overlap rules; DST-safe time; idempotent ticks; pairing rate limits; milestone plan that ships a browser board before Alexa. |
